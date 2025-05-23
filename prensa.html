@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle de Ciclos de Produção - PPS</title>
+  <style>
+    :root {
+      --primary-color: #4caf50;
+      --secondary-color: #1b1b1b;
+      --text-color: #ffffff;
+      --accent-color: #ff9800;
+      --alert-color: #ff4444;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--secondary-color);
+      color: var(--text-color);
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 320px;
+      background: #222;
+      padding: 20px;
+      box-shadow: inset 0 0 8px #000;
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar h2 { margin-bottom: 15px; user-select: none; }
+    .form-group { margin-bottom: 12px; display: flex; flex-direction: column; }
+    .form-group label { margin-bottom: 4px; font-size: 14px; }
+    .form-group input[type="text"], .form-group input[type="number"] {
+      padding: 6px 8px; border-radius: 4px; border: none; font-size: 14px;
+    }
+    .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+    .btn-group button {
+      flex: 1; padding: 10px; font-size: 14px; background: var(--primary-color);
+      color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;
+      user-select: none; transition: background 0.3s;
+    }
+    .btn-group button:hover { background: var(--accent-color); }
+    .lista-pecas { flex: 1; overflow-y: auto; }
+    .lista-pecas div {
+      padding: 8px; background: #333; margin-bottom: 8px; border-radius: 5px;
+      cursor: pointer; user-select: none;
+    }
+    .lista-pecas div.selected { background: var(--primary-color); }
+    .container {
+      flex: 1;
+      max-width: 600px;
+      margin: 20px;
+      background: #333;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      position: relative;
+      min-height: 420px;
+    }
+    .painel-central {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .cronometro {
+      font-size: 96px;
+      margin: 20px 0;
+      color: #ffa500;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-shadow: 0 0 18px #ffb84d, 0 2px 8px #000a;
+      user-select: none;
+      transition: color 0.2s;
+    }
+    .cronometro.alert {
+      color: var(--alert-color);
+      animation: piscar 1s infinite;
+    }
+    @keyframes piscar {
+      0%, 100% {opacity: 1;}
+      50% {opacity: 0;}
+    }
+    .etapa { font-size: 24px; margin: 10px 0; user-select: none; }
+    .btn-prensa {
+      margin: 20px 0 0 0;
+      padding: 10px 20px;
+      font-size: 18px;
+      color: var(--text-color);
+      background: var(--primary-color);
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+      user-select: none;
+    }
+    .btn-prensa:hover { background: var(--accent-color); }
+    .btn-parar {
+      padding: 10px 20px;
+      font-size: 18px;
+      color: #fff;
+      background: #ff4444;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 10px;
+    }
+    .btn-parar:hover { background: #ff9800; }
+    .indicadores {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin: 20px 0;
+    }
+    .indicador {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      margin: 0 5px;
+      background: #444;
+      border-radius: 5px;
+      user-select: none;
+    }
+    .msg-prensa-parada {
+      margin-top: 15px;
+      color: var(--alert-color);
+      font-weight: bold;
+      user-select: none;
+      display: none;
+    }
+    .operador-info {
+      background: #222;
+      color: #ffa500;
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      font-size: 1.1rem;
+    }
+    .painel-analitico {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-width: 180px;
+      align-items: center;
+      margin-left: 32px;
+      margin-top: 10px;
+      background: #222;
+      border-radius: 10px;
+      padding: 18px 10px;
+      box-shadow: 0 2px 8px #0006;
+      z-index: 2;
+    }
+    .gauge-box {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .gauge-box svg { width: 100%; height: auto; }
+    @media (max-width: 900px) {
+      body { flex-direction: column; align-items: center; }
+      .sidebar { width: 90%; margin-bottom: 20px; }
+      .container { max-width: 90%; margin: 0 10px 20px; }
+      .painel-analitico {
+        flex-direction: row;
+        width: 100%;
+        margin: 20px 0 0 0;
+        padding: 10px 0;
+        justify-content: center;
+      }
+      .gauge-box { margin-bottom: 0; margin-right: 16px; }
+    }
+    /* Modal histórico */
+    #modal-historico {
+      display: none; position:fixed; top:0; left:0; width:100vw; height:100vh;
+      background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;
+    }
+    #modal-historico .conteudo {
+      background:#222; border-radius:10px; padding:24px; max-width:90vw; max-height:80vh;
+      overflow:auto; color:#fff; position:relative;
+    }
+    #fechar-historico {
+      position:absolute; top:8px; right:8px; background:#ff4444; color:#fff;
+      border:none; border-radius:5px; padding:4px 10px; cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Configurar Peça</h2>
+    <div class="form-group">
+      <label for="input-peca">Peça</label>
+      <input type="text" id="input-peca" placeholder="Nome da peça" />
+    </div>
+    <div class="form-group">
+      <label for="input-ciclo">Duração do Ciclo (segundos)</label>
+      <input type="number" id="input-ciclo" min="1" max="60" value="25" />
+    </div>
+    <div class="form-group">
+      <label for="input-pecas-ciclo">Peças por Ciclo</label>
+      <input type="number" id="input-pecas-ciclo" min="1" value="2" />
+    </div>
+    <div class="btn-group">
+      <button id="btn-salvar">Salvar</button>
+      <button id="btn-excluir">Excluir</button>
+      <button id="btn-iniciar">Iniciar Produção</button>
+    </div>
+    <h3>Peças Salvas</h3>
+    <div class="lista-pecas" id="lista-pecas"></div>
+  </div>
+
+  <div class="container">
+    <div class="painel-central">
+      <div class="cronometro" id="cronometro">0</div>
+      <div class="etapa" id="etapa">Aguardando Início</div>
+      <button class="btn-prensa" id="btn-prensa">Prensa</button>
+      <button class="btn-parar" id="btn-parar" style="margin-bottom:10px;">Parar Produção</button>
+      <div class="indicadores">
+        <div class="indicador">Ciclos: <span id="ciclos">0</span></div>
+        <div class="indicador">Peças: <span id="pecas">0</span></div>
+        <div class="indicador">Eficiência: <span id="eficiencia">0%</span></div>
+      </div>
+      <button id="btn-historico" style="margin-bottom:10px;">Ver Histórico</button>
+      <div id="modal-historico">
+        <div class="conteudo">
+          <button id="fechar-historico">Fechar</button>
+          <h2>Histórico de Prensadas</h2>
+          <div id="historico-conteudo"></div>
+        </div>
+      </div>
+      <div class="msg-prensa-parada" id="msg-prensa-parada">
+        Prensa Parada - Aperte o botão para reiniciar
+      </div>
+      <div class="operador-info">
+        <strong>Usuário:</strong> <span id="op-nome"></span> &nbsp;|&nbsp;
+        <strong>Prensa:</strong> <span id="op-prensa"></span> &nbsp;|&nbsp;
+        <strong>DRT:</strong> <span id="op-drt"></span>
+      </div>
+    </div>
+    <div class="painel-analitico">
+      <div class="gauge-box">
+        <svg width="160" height="110" viewBox="0 0 160 110">
+          <path id="gauge-eficiencia-bg" d="M20,90 A70,70 0 0,1 140,90" fill="none" stroke="#444" stroke-width="16"/>
+          <path id="gauge-eficiencia" d="" fill="none" stroke="#ffa500" stroke-width="16" stroke-linecap="round"/>
+          <text id="gauge-eficiencia-text" x="80" y="65" text-anchor="middle" font-size="28" fill="#fff" font-weight="bold" alignment-baseline="middle">0%</text>
+          <text x="80" y="100" text-anchor="middle" font-size="16" fill="#ffa500">Eficiência</text>
+        </svg>
+      </div>
+      <div class="gauge-box">
+        <svg width="160" height="110" viewBox="0 0 160 110">
+          <path id="gauge-utilizacao-bg" d="M20,90 A70,70 0 0,1 140,90" fill="none" stroke="#444" stroke-width="16"/>
+          <path id="gauge-utilizacao" d="" fill="none" stroke="#4caf50" stroke-width="16" stroke-linecap="round"/>
+          <text id="gauge-utilizacao-text" x="80" y="65" text-anchor="middle" font-size="28" fill="#fff" font-weight="bold" alignment-baseline="middle">0%</text>
+          <text x="80" y="100" text-anchor="middle" font-size="16" fill="#4caf50">Utilização</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+<script>
+const cronometro = document.getElementById('cronometro');
+const etapa = document.getElementById('etapa');
+const btnPrensa = document.getElementById('btn-prensa');
+const btnParar = document.getElementById('btn-parar');
+const ciclosSpan = document.getElementById('ciclos');
+const pecasSpan = document.getElementById('pecas');
+const eficienciaSpan = document.getElementById('eficiencia');
+const msgPrensaParada = document.getElementById('msg-prensa-parada');
+const inputPeca = document.getElementById('input-peca');
+const inputCiclo = document.getElementById('input-ciclo');
+const inputPecasCiclo = document.getElementById('input-pecas-ciclo');
+const btnSalvar = document.getElementById('btn-salvar');
+const btnExcluir = document.getElementById('btn-excluir');
+const btnIniciar = document.getElementById('btn-iniciar');
+const listaPecas = document.getElementById('lista-pecas');
+
+// Variáveis de controle
+let tempoDecorrido = 0;
+let pecasSalvas = JSON.parse(localStorage.getItem('pecasSalvas') || '[]');
+let selecionadaIndex = null;
+let timer = null;
+let cicloDuracao = 25;
+let pecasPorCiclo = 2;
+let cicloEmAndamento = false;
+let ciclosFinalizados = 0;
+let pecasProduzidas = 0;
+let tempoParadoTotal = 0;
+let tempoParadaInicio = null;
+let ciclosHistorico = [];
+
+// Atualiza lista lateral de peças
+function atualizarListaPecas() {
+  listaPecas.innerHTML = '';
+  pecasSalvas.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.textContent = `${p.nome} (Ciclo: ${p.ciclo}s, Peças/ciclo: ${p.pecasPorCiclo})`;
+    div.classList.toggle('selected', i === selecionadaIndex);
+    div.onclick = () => {
+      selecionadaIndex = i;
+      carregarPecaSelecionada();
+      atualizarListaPecas();
+    };
+    listaPecas.appendChild(div);
+  });
+}
+
+// Carrega peça selecionada no formulário
+function carregarPecaSelecionada() {
+  if (selecionadaIndex === null) {
+    inputPeca.value = '';
+    inputCiclo.value = 25;
+    inputPecasCiclo.value = 2;
+    btnPrensa.disabled = true;
+    etapa.textContent = 'Aguardando Início';
+    cronometro.textContent = '0';
+    return;
+  }
+  const p = pecasSalvas[selecionadaIndex];
+  inputPeca.value = p.nome;
+  inputCiclo.value = p.ciclo;
+  inputPecasCiclo.value = p.pecasPorCiclo;
+  cicloDuracao = p.ciclo;
+  pecasPorCiclo = p.pecasPorCiclo;
+  btnPrensa.disabled = true;
+  etapa.textContent = 'Aguardando Início';
+  cronometro.textContent = '0';
+  pararCiclo();
+}
+
+// Salvar peça nova ou atualizada
+btnSalvar.addEventListener('click', () => {
+  const nome = inputPeca.value.trim();
+  const ciclo = parseInt(inputCiclo.value);
+  const pecasCiclo = parseInt(inputPecasCiclo.value);
+  if (!nome || isNaN(ciclo) || ciclo < 1 || ciclo > 60 || isNaN(pecasCiclo) || pecasCiclo < 1) {
+    alert('Preencha todos os campos corretamente.');
+    return;
+  }
+  const p = { nome, ciclo, pecasPorCiclo: pecasCiclo };
+  if (selecionadaIndex === null) {
+    pecasSalvas.push(p);
+    selecionadaIndex = pecasSalvas.length - 1;
+  } else {
+    pecasSalvas[selecionadaIndex] = p;
+  }
+  localStorage.setItem('pecasSalvas', JSON.stringify(pecasSalvas));
+  cicloDuracao = ciclo;
+  pecasPorCiclo = pecasCiclo;
+  atualizarListaPecas();
+  alert('Peça salva com sucesso.');
+  btnPrensa.disabled = true;
+  etapa.textContent = 'Aguardando Início';
+  cronometro.textContent = '0';
+});
+
+// Excluir peça selecionada
+btnExcluir.addEventListener('click', () => {
+  if (selecionadaIndex === null) {
+    alert('Nenhuma peça selecionada.');
+    return;
+  }
+  if (!confirm(`Excluir a peça "${pecasSalvas[selecionadaIndex].nome}"?`)) return;
+  pecasSalvas.splice(selecionadaIndex,1);
+  selecionadaIndex = null;
+  localStorage.setItem('pecasSalvas', JSON.stringify(pecasSalvas));
+  atualizarListaPecas();
+  carregarPecaSelecionada();
+});
+
+// Iniciar produção da peça selecionada
+btnIniciar.addEventListener('click', () => {
+  if (selecionadaIndex === null) {
+    alert('Selecione uma peça para iniciar produção.');
+    return;
+  }
+  if (cicloEmAndamento) {
+    alert('Ciclo já em andamento.');
+    return;
+  }
+  cicloDuracao = pecasSalvas[selecionadaIndex].ciclo;
+  pecasPorCiclo = pecasSalvas[selecionadaIndex].pecasPorCiclo;
+  iniciarCiclo();
+});
+
+// Atualiza indicadores e gráficos
+function atualizarIndicadores() {
+  ciclosSpan.textContent = ciclosFinalizados;
+  pecasSpan.textContent = pecasProduzidas;
+
+  // Cálculo de eficiência
+  const metaPorHora = 400;
+  const tempoTrabalhoMin = 7.5 * 60; // 7:30h em minutos
+  const eficiencia = pecasProduzidas > 0 ? Math.min(100, Math.round((pecasProduzidas / (metaPorHora * (tempoTrabalhoMin / 60))) * 100)) : 0;
+
+  // Cálculo de utilização (tempo parada)
+  const tempoTotal = ((ciclosFinalizados * cicloDuracao) + tempoParadoTotal);
+  const utilizacao = tempoTotal > 0 ? Math.max(0, Math.min(100, Math.round((ciclosFinalizados * cicloDuracao) / tempoTotal * 100))) : 100;
+
+  eficienciaSpan.textContent = eficiencia + '%';
+
+  desenharGaugeEf(eficiencia);
+  desenharGaugeUt(utilizacao);
+}
+
+// Funções dos gauges
+function desenharGaugeEf(eficiencia) {
+  let cor = "#ffa500";
+  if (eficiencia < 95) cor = "#ff4444";
+  const start = Math.PI, end = 0;
+  const raio = 70, cx = 80, cy = 90;
+  let val = Math.max(eficiencia, 0.01); // nunca zero absoluto
+  const ang = start + (end - start) * (val / 100);
+  const x = cx + raio * Math.cos(ang);
+  const y = cy + raio * Math.sin(ang);
+  const largeArc = val > 50 ? 1 : 0;
+  const d = `M${cx - raio},${cy} A${raio},${raio} 0 ${largeArc},1 ${x},${y}`;
+  document.getElementById("gauge-eficiencia").setAttribute("d", eficiencia > 0 ? d : "");
+  document.getElementById("gauge-eficiencia").setAttribute("stroke", cor);
+  document.getElementById("gauge-eficiencia-text").textContent = `${eficiencia}%`;
+}
+function desenharGaugeUt(utilizacao) {
+  let cor = "#4caf50";
+  if (utilizacao < 82) cor = "#ff4444";
+  const start = Math.PI, end = 0;
+  const raio = 70, cx = 80, cy = 90;
+  let val = Math.max(utilizacao, 0.01);
+  const ang = start + (end - start) * (val / 100);
+  const x = cx + raio * Math.cos(ang);
+  const y = cy + raio * Math.sin(ang);
+  const largeArc = val > 50 ? 1 : 0;
+  const d = `M${cx - raio},${cy} A${raio},${raio} 0 ${largeArc},1 ${x},${y}`;
+  document.getElementById("gauge-utilizacao").setAttribute("d", utilizacao > 0 ? d : "");
+  document.getElementById("gauge-utilizacao").setAttribute("stroke", cor);
+  document.getElementById("gauge-utilizacao-text").textContent = `${utilizacao}%`;
+}
+
+// Adiciona evento ao histórico (apenas para exibição rápida)
+function adicionarHistorico(evento, inicio, fim, detalhes) {
+  // Você pode customizar para salvar em localStorage se quiser persistência
+}
+
+// Inicia ciclo produtivo
+function iniciarCiclo() {
+  cicloEmAndamento = true;
+  msgPrensaParada.style.display = 'none';
+  btnPrensa.disabled = false;
+  etapa.textContent = 'Ciclo em andamento';
+  tempoDecorrido = 0;
+  cronometro.textContent = tempoDecorrido;
+  cronometro.classList.remove('alert');
+
+  if (tempoParadaInicio !== null) {
+    const fimParada = new Date();
+    tempoParadoTotal += Math.floor((fimParada - tempoParadaInicio) / 1000);
+    tempoParadaInicio = null;
+  }
+
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => {
+    tempoDecorrido++;
+    cronometro.textContent = tempoDecorrido;
+
+    // Piscar vermelho nos últimos 5 segundos antes de 60s
+    if (tempoDecorrido >= 55 && tempoDecorrido < 60) {
+      cronometro.classList.add('alert');
+    } else {
+      cronometro.classList.remove('alert');
+    }
+
+    if (tempoDecorrido >= 60) {
+      cronometro.textContent = 60;
+      cronometro.classList.add('alert');
+      pararCiclo();
+      msgPrensaParada.style.display = 'block';
+      etapa.textContent = 'Parada';
+      tempoParadaInicio = new Date();
+    }
+  }, 1000);
+}
+
+// Para o ciclo
+function pararCiclo() {
+  cicloEmAndamento = false;
+  if (timer) clearInterval(timer);
+  btnPrensa.disabled = true;
+  etapa.textContent = 'Aguardando Início';
+  cronometro.classList.remove('alert');
+}
+
+// Botão Parar: Para a produção manualmente
+btnParar.addEventListener('click', () => {
+  if (!cicloEmAndamento) return;
+  pararCiclo();
+  msgPrensaParada.style.display = 'block';
+  etapa.textContent = 'Parada';
+  tempoParadaInicio = new Date();
+});
+
+// Botão Prensa: Finaliza ciclo, registra produção e já reinicia ciclo
+btnPrensa.addEventListener('click', () => {
+  if (!cicloEmAndamento) {
+    msgPrensaParada.style.display = 'none';
+    iniciarCiclo();
+    return;
+  }
+  let tempoCicloAtual = tempoDecorrido;
+
+  ciclosFinalizados++;
+  pecasProduzidas += pecasPorCiclo;
+  const fimCiclo = new Date();
+  const inicioCicloStr = new Date(fimCiclo.getTime() - tempoCicloAtual * 1000).toLocaleTimeString();
+  const fimCicloStr = fimCiclo.toLocaleTimeString();
+
+  ciclosHistorico.push({
+    inicio: inicioCicloStr,
+    fim: fimCicloStr,
+    tempo: tempoCicloAtual,
+    cicloPadrao: cicloDuracao,
+    pecas: pecasPorCiclo
+  });
+
+  atualizarIndicadores();
+  pararCiclo();
+  iniciarCiclo();
+});
+
+// Exibe informações do operador vindas do localStorage
+document.getElementById("op-nome").textContent = localStorage.getItem("operador_nome") || "";
+document.getElementById("op-prensa").textContent = localStorage.getItem("operador_prensa") || "";
+document.getElementById("op-drt").textContent = localStorage.getItem("operador_drt") || "";
+
+// Inicializações
+atualizarListaPecas();
+carregarPecaSelecionada();
+atualizarIndicadores();
+
+// Modal histórico
+const btnHistorico = document.getElementById('btn-historico');
+const modalHistorico = document.getElementById('modal-historico');
+const fecharHistorico = document.getElementById('fechar-historico');
+const historicoConteudo = document.getElementById('historico-conteudo');
+
+btnHistorico.addEventListener('click', () => {
+  mostrarHistoricoFiltrado();
+  modalHistorico.style.display = 'flex';
+});
+fecharHistorico.addEventListener('click', () => {
+  modalHistorico.style.display = 'none';
+});
+
+// Função para filtrar e exibir o histórico
+function mostrarHistoricoFiltrado() {
+  let html = '';
+
+  // Golpes suspeitos (<10s)
+  let suspeitos = ciclosHistorico.filter(c => c.tempo < 10);
+  if (suspeitos.length > 0) {
+    html += `<h3 style="color:#ff4444;">Golpes suspeitos (&lt;10s)</h3><ul>`;
+    suspeitos.forEach(c => {
+      html += `<li>${c.inicio} - ${c.fim} | Tempo: ${c.tempo}s <span style="color:#ff4444;">(Golpe suspeito!)</span></li>`;
+    });
+    html += `</ul>`;
+  }
+
+  // Golpes atrasados (> ciclo + 10s)
+  let atrasados = ciclosHistorico.filter(c => c.tempo > (c.cicloPadrao + 10));
+  if (atrasados.length > 0) {
+    html += `<h3 style="color:#ffa500;">Golpes atrasados (&gt;${ciclosHistorico[0]?.cicloPadrao + 10 || 0}s)</h3><ul>`;
+    atrasados.forEach(c => {
+      html += `<li>${c.inicio} - ${c.fim} | Tempo: ${c.tempo}s <span style="color:#ffa500;">(Atraso)</span></li>`;
+    });
+    html += `</ul>`;
+  }
+
+  // Média por hora (atualizada a cada 30min)
+  let agora = new Date();
+  let ciclosUltimaHora = ciclosHistorico.filter(c => {
+    let [h, m, s] = c.fim.split(':').map(Number);
+    let fim = new Date();
+    fim.setHours(h, m, s, 0);
+    return (agora - fim) <= 60 * 60 * 1000; // últimos 60 minutos
+  });
+  if (ciclosUltimaHora.length > 0) {
+    let media = (ciclosUltimaHora.reduce((acc, c) => acc + c.tempo, 0) / ciclosUltimaHora.length).toFixed(2);
+    html += `<h3 style="color:#4caf50;">Média dos ciclos na última hora</h3>`;
+    html += `<p>Média: <strong>${media}s</strong> (${ciclosUltimaHora.length} ciclos)</p>`;
+  } else {
+    html += `<h3 style="color:#4caf50;">Média dos ciclos na última hora</h3><p>Nenhum ciclo registrado na última hora.</p>`;
+  }
+
+  historicoConteudo.innerHTML = html;
+}
+</script>
+</body>
+</html>
