@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login da Prensa | TAB</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #232526 0%, #414345 100%);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Efeito de círculos modernos no fundo */
+    .bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.18;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .bg1 { width: 400px; height: 400px; background: #ffa500; top: -100px; left: -100px; }
+    .bg2 { width: 300px; height: 300px; background: #ff8000; bottom: -80px; right: -80px; }
+    .bg3 { width: 200px; height: 200px; background: #fff; top: 60%; left: 70%; opacity: 0.07; }
+
+    .container {
+      background: rgba(51,51,51,0.97);
+      padding: 36px 26px 28px 26px;
+      border-radius: 18px;
+      box-shadow: 0 4px 32px #000a;
+      text-align: center;
+      width: 350px;
+      max-width: 95vw;
+      z-index: 1;
+      position: relative;
+    }
+
+    .empresa-logo {
+      font-size: 2.7rem;
+      font-weight: bold;
+      letter-spacing: 4px;
+      color: #ffa500;
+      margin-bottom: 10px;
+      text-shadow: 0 0 18px #ffb84d, 0 2px 8px #000a;
+      animation: brilho 2.5s infinite alternate;
+      user-select: none;
+    }
+    @keyframes brilho {
+      0% { text-shadow: 0 0 18px #ffb84d, 0 2px 8px #000a; }
+      100% { text-shadow: 0 0 32px #fffbe6, 0 2px 8px #000a; }
+    }
+
+    h1 {
+      color: #ffa500;
+      margin-bottom: 22px;
+      font-size: 1.5rem;
+      letter-spacing: 1px;
+    }
+
+    label {
+      text-align: left;
+      margin-bottom: 4px;
+      color: #ffa500;
+      font-weight: bold;
+      font-size: 1.05rem;
+    }
+
+    input, select {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: #222;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      outline: none;
+      transition: background 0.2s;
+    }
+
+    input:focus, select:focus {
+      background: #444;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    button {
+      background: #ffa500;
+      color: #222;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+      box-shadow: 0 2px 8px #0004;
+    }
+
+    button:hover {
+      background: #ff8000;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 500px) {
+      .container {
+        padding: 16px 4px;
+        width: 98vw;
+      }
+      .empresa-logo {
+        font-size: 1.5rem;
+      }
+      h1 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Círculos de fundo -->
+  <div class="bg-circle bg1"></div>
+  <div class="bg-circle bg2"></div>
+  <div class="bg-circle bg3"></div>
+
+  <!-- Página de Login -->
+  <div class="container" id="login-page">
+    <div class="empresa-logo">TAB TECH</div>
+    <h1>Login da Prensa</h1>
+    <form id="login-form">
+      <label for="nome">Nome do Usuário:</label>
+      <input type="text" id="nome" name="nome" required autocomplete="off">
+
+      <label for="prensa">Número da Prensa:</label>
+      <select id="prensa" name="prensa" required>
+        <option value="" disabled selected>Selecione</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+      </select>
+
+      <label for="drt">DRT:</label>
+      <input type="text" id="drt" name="drt" required autocomplete="off">
+
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+
+  <script>
+  // Ao enviar o formulário, salva os dados no localStorage e redireciona
+  document.getElementById("login-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    const nome = document.getElementById("nome").value;
+    const prensa = document.getElementById("prensa").value;
+    const drt = document.getElementById("drt").value;
+
+    // Salva no localStorage
+    localStorage.setItem("operador_nome", nome);
+    localStorage.setItem("operador_prensa", prensa);
+    localStorage.setItem("operador_drt", drt);
+
+    // Redireciona para a página de controle da prensa
+    window.location.href = "index.html";
+  });
+  </script>
+</body>
+</html>
